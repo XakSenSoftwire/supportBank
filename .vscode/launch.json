@@ -8,16 +8,6 @@
         "skipFiles": ["<node_internals>/**"],
         "program": "${workspaceFolder}\\app.js"
       }
-    ],
-
-    "inputs": [
-    {
-      "id": "pickCmd",
-      "description": "input command",
-      "type": "pickString",
-      "options": ["List All", "List Sam N", "Close"],
-      "default": "Close"
-    }
     ]
   }
   
