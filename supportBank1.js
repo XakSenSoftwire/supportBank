@@ -1,11 +1,11 @@
-// import libraries
+// // import libraries
 
 var readlineSync = require('readline-sync');
-const fs = require('fs');
 const Excel = require('exceljs');
 
-// define classes
+// // define classes
 
+// Account class to store name, balance, and transaction history. will be the .value() of the database [map]
 class Account {
     constructor (name = ``) {
         this.name = name;
@@ -32,18 +32,10 @@ class Account {
         this.balance += value
     }
 
-    // // add current transaction to transaction history
-    // addTransaction(currTransaction){
-    //     this.transactionHistory.push(currTransaction);
-    // }
-    // // add current transaction to net balance
-    // updateBalance(value) {
-    //     this.balance += value;
-    // }
-
 
 }
 
+// Transaction class to handle input from CSV file read and print transaction history neatly
 class Transaction {
     constructor (date, narrative , value) {
         this.date = date;
@@ -56,13 +48,14 @@ class Transaction {
         }
     }
 
+    // output for list acc cmd
     printTransaction(){
         console.log(`${this.date}, ${this.narrative}, ${this.value}`)
     }
 }
 
-// define functions
-
+// // define functions
+// CSV read file function to an array of data to be destructured and assigned to Account and Transaction objs
 async function readCSVFile(fileName) {
     const workbook = new Excel.Workbook();
     const options = {
@@ -90,19 +83,20 @@ async function readCSVFile(fileName) {
     return worksheet
 }
 
+// function to check user input is correctly formatted as "List [...]"
 function isFormattedCorrectly(userRequest) {
-    const regexTest = /^List \w+$/;
+    const regexTest = /List\s+([\w\s]+)/;
     return regexTest.test(userRequest);
 }
 
+// main logic flow of programme
 async function main() {
     
     // read file
     const fileName = `transactions2014.csv`;
     const worksheet = await readCSVFile(fileName);
-    // console.log(worksheet.getCell(`E2`).text);
 
-    // iterate through each row of the worksheet and update database
+    // iterate through each row of the worksheet and create database
     var accDatabase = new Map();
     worksheet.eachRow(row => {
 
@@ -115,7 +109,7 @@ async function main() {
         let [, date, senderName, recipientName, narrative, value] = row.values;
 
         // sender account check
-        if (!accDatabase.has(senderName)){
+        if (!accDatabase.has(senderName)) {
             accDatabase.set(senderName, new Account(senderName));
         } 
         
@@ -123,49 +117,66 @@ async function main() {
         accDatabase.get(senderName).updateAccount(date, narrative, -value);
 
         // recipient account check
-        if (!accDatabase.has(recipientName)){
+        if (!accDatabase.has(recipientName)) {
             accDatabase.set(recipientName, new Account(recipientName));
         }
         
         accDatabase.get(recipientName).updateAccount(date, narrative, value);
     });
-
+    
     // ask for user inputs
+    console.log(`----------------------------------------------`)
     console.log(`Welcome to supportBank!`);
+    console.log(`----------------------------------------------`)
     console.log(`Please input one of the following options.`);
     console.log('List All: Outputs the name and net balance of each account.');
     console.log('List [Name]: Outputs the transaction history of that account.');
     console.log('Close: Closes the application.');
+    console.log(`----------------------------------------------`)
     var userRequest = readlineSync.question(`What would you like to do? `);
 
+    // while input is not close, continue asking user for inputs
     while (userRequest != `Close`) {
+
+        // if user inputs `List All`, print the name and balance of each account in database
         if (userRequest === `List All`) {
             accDatabase.forEach(currAcc => {
                 currAcc.printAccount();
             });
-
         } 
         
+        // otherwise, check if input is formatted as `List [Name]`
         else if (isFormattedCorrectly(userRequest)) {
-            const regexExtract = /List\s+([\w\s]+)/;
-            let userRequestName = userRequest.match(regexExtract);
 
+            // extract `[Name]` from input
+            const regexExtract = /List\s+([\w\s]+)/;
+            let [,userRequestName] = userRequest.match(regexExtract);
+
+            // check database for name
             if (accDatabase.has(userRequestName)) {
-                accDatabase.get(userRequestName).forEach(currTransaction => {
+                let arrTransaction = accDatabase.get(userRequestName).transactionHistory;
+                arrTransaction.forEach(currTransaction => {
                     currTransaction.printTransaction()
                 });
             } 
             
+            // failure message for name check
             else {
                 console.log(`Sorry, we can't find an account attached to that name.`);
             }
         }
 
+        // wider failure message for bad input
         else {
             console.log(`Sorry, I don't recognise that command. Please try again.`);
         }
+
+        // prompt user again
+        console.log(`----------------------------------------------`)
         userRequest = readlineSync.question(`Would you like to do another operation? Input a command: `);
     }
+
+    // closing message
     console.log('Closing...');
 }
 
