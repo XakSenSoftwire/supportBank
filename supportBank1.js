@@ -2,6 +2,21 @@
 
 var readlineSync = require('readline-sync');
 const Excel = require('exceljs');
+var log4js = require("log4js");
+
+log4js.configure(
+    {
+    appenders: {
+        file: {type: 'fileSync', filename: 'logs/debug.log'}
+    },
+    categories: {
+        default: {appenders: ['file'], level: 'debug'}
+    }
+});
+
+const logger = log4js.getLogger('supportBankLog.js');
+
+
 
 // // define classes
 
@@ -91,9 +106,11 @@ function isFormattedCorrectly(userRequest) {
 
 // main logic flow of programme
 async function main() {
+
+    logger.trace("supportBank intiating...")
     
     // read file
-    const fileName = `transactions2014.csv`;
+    const fileName = `DodgyTransactions2015.csv`;
     const worksheet = await readCSVFile(fileName);
 
     // iterate through each row of the worksheet and create database
@@ -177,7 +194,7 @@ async function main() {
     }
 
     // closing message
-    console.log('Closing...');
+    logger.trace("supportBank closing...")
 }
 
 main()
