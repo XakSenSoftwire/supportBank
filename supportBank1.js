@@ -4,6 +4,7 @@ var readlineSync = require('readline-sync');
 const Excel = require('exceljs');
 var log4js = require("log4js");
 const moment = require("moment");
+const fs = require('fs');
 
 log4js.configure(
     {
@@ -75,7 +76,6 @@ class Transaction {
 }
 
 // // define functions
-// CSV read file function to an array of data to be destructured and assigned to Account and Transaction objs
 async function readCSVFile(fileName) {
     const workbook = new Excel.Workbook();
     const options = {
@@ -106,49 +106,108 @@ async function readCSVFile(fileName) {
     return worksheet
 }
 
-// function to check user input is correctly formatted as "List [...]"
+async function readJSONFile(fileName) {
+    // fs.readFile(fileName, async (err, data) => {
+    //     if (err) {
+    //       logger.fatal('Error reading the file:', err);
+    //       return;
+    //     }
+    //     let temp = JSON.parse(data);
+    //     console.log(temp);
+    //     return await JSON.parse(data);
+    // })}
+    fs.readFile('./Transactions2014.csv', function read(err, data) {
+        if (err) {
+            throw err;
+        }
+        const content = data;
+    
+        // Invoke the next step here however you like
+        console.log(content);   // Put all of the code here (not the best solution)
+        processFile(content);   // Or put the next step in a function and invoke it
+    });
+    
+    function processFile(content) {
+        console.log(content);
+    }
+
+}
+
 function isFormattedCorrectly(userRequest) {
     const regexTest = /List\s+([\w\s]+)/;
     return regexTest.test(userRequest);
 }
 
+function updateDatabase(accDatabase, date, senderName, recipientName, narrative, value, index) {
+    // check data is good read
+    if (date.isValid() && narrative && value) {
+        // sender account check
+        if (!accDatabase.has(senderName)) {
+            accDatabase.set(senderName, new Account(senderName));
+        } 
+        
+        // recipient account check
+        if (!accDatabase.has(recipientName)) {
+            accDatabase.set(recipientName, new Account(recipientName));
+        }
+        
+        // update sender acc
+        accDatabase.get(senderName).updateAccount(date, narrative, -value);
+        accDatabase.get(recipientName).updateAccount(date, narrative, value);
+    } else {
+        logger.error(`Data at ${index} in the input file is not in the expected format.`)
+    }
+}
+
+// Function to execute different code based on file type
+async function handleFileType(fileName) {
+    // Extract the file extension from the file name
+    const fileExtension = fileName.split('.').pop().toLowerCase();
+    let accDatabase = new Map();
+    
+    switch (fileExtension) {
+      case 'json':
+        logger.info('This is a JSON file. Parsing JSON...');
+        const worksheetJSON = await readJSONFile(fileName);
+        // console.log(jsonData);
+        worksheetJSON.forEach(row => {
+            console.log("Hello");
+        })
+
+        return accDatabase
+
+      case 'csv':
+        logger.info('This is a CSV file. Processing CSV...');
+        const worksheetCSV = await readCSVFile(fileName);
+
+        // iterate through each row of the worksheet and create database
+        worksheetCSV.eachRow(row => {
+    
+            // destructuing assingment of variables
+            let [, date, senderName, recipientName, narrative, value] = row.values;
+
+            updateDatabase(accDatabase, date, senderName, recipientName, narrative, value, row.number);
+        });
+        
+        return accDatabase
+      
+      default:
+        logger.error('Unsupported file type. Please provide a valid file.');
+    }
+}
+
+  
+
 // main logic flow of programme
 async function main() {
-
+    
     logger.trace("supportBank intiating...")
     
     // read file
-    const fileName = `DodgyTransactions2015.csv`;
-    const worksheet = await readCSVFile(fileName);
+    const fileName = `Transactions2013.json`;
+    // const fileName = `Transactions2014.csv`;
+    const accDatabase = await handleFileType(fileName);
 
-    // iterate through each row of the worksheet and create database
-    var accDatabase = new Map();
-    worksheet.eachRow(row => {
-
-        // destructuing assingment of variables
-        let [, date, senderName, recipientName, narrative, value] = row.values;
-
-        // check data is good read
-        if (date.isValid() && narrative && value) {
-            // sender account check
-            if (!accDatabase.has(senderName)) {
-                accDatabase.set(senderName, new Account(senderName));
-            } 
-            
-            // update sender acc
-            accDatabase.get(senderName).updateAccount(date, narrative, -value);
-
-            // recipient account check
-            if (!accDatabase.has(recipientName)) {
-                accDatabase.set(recipientName, new Account(recipientName));
-            }
-            
-            accDatabase.get(recipientName).updateAccount(date, narrative, value);
-        } else {
-            logger.error(`Row ${row.number} in the input file is not in the expected format.`)
-        }
-    });
-    
     // ask for user inputs
     console.log(`----------------------------------------------`)
     console.log(`Welcome to supportBank!`);
