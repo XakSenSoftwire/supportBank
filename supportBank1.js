@@ -116,20 +116,21 @@ async function readJSONFile(fileName) {
     //     console.log(temp);
     //     return await JSON.parse(data);
     // })}
-    fs.readFile('./Transactions2014.csv', function read(err, data) {
+    console.log("Anything1");
+    let jsonOutput;
+    console.log("Anything2");
+    fs.readFile('Transactions2013.json', `utf8`, function (err, data) {
+        console.log("Anything3");
         if (err) {
             throw err;
         }
-        const content = data;
+        console.log("Anything4");
+        jsonOutput = JSON.parse(data);
+        console.log("Anything5");
     
         // Invoke the next step here however you like
-        console.log(content);   // Put all of the code here (not the best solution)
-        processFile(content);   // Or put the next step in a function and invoke it
+        console.log(jsonOutput);   // Put all of the code here (not the best solution)
     });
-    
-    function processFile(content) {
-        console.log(content);
-    }
 
 }
 
@@ -170,11 +171,12 @@ async function handleFileType(fileName) {
         logger.info('This is a JSON file. Parsing JSON...');
         const worksheetJSON = await readJSONFile(fileName);
         // console.log(jsonData);
-        worksheetJSON.forEach(row => {
-            console.log("Hello");
-        })
+        // worksheetJSON.forEach(row => {
+        //     console.log("Hello");
+        // })
 
-        return accDatabase
+        // return accDatabase
+        return ""
 
       case 'csv':
         logger.info('This is a CSV file. Processing CSV...');
