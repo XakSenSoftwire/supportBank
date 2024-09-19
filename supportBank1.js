@@ -3,6 +3,7 @@
 var readlineSync = require('readline-sync');
 const Excel = require('exceljs');
 var log4js = require("log4js");
+const moment = require("moment");
 
 log4js.configure(
     {
@@ -10,11 +11,11 @@ log4js.configure(
         file: {type: 'fileSync', filename: 'logs/debug.log'}
     },
     categories: {
-        default: {appenders: ['file'], level: 'debug'}
+        default: {appenders: ['file'], level: 'trace'}
     }
 });
 
-const logger = log4js.getLogger('supportBankLog.js');
+const logger = log4js.getLogger('supportBank1.js');
 
 
 
@@ -43,17 +44,24 @@ class Account {
     
     // update account with new balance and transaction history
     updateAccount(date, narrative, value) {
-        this.transactionHistory.push(new Transaction(date, narrative, value))
-        this.balance += value
+        let currTransaction = new Transaction(date, narrative, value);
+        if (currTransaction.success) {
+            this.transactionHistory.push(currTransaction);
+            this.balance += value;
+        }
     }
-
 
 }
 
 // Transaction class to handle input from CSV file read and print transaction history neatly
 class Transaction {
-    constructor (date, narrative , value) {
-        this.date = date;
+    constructor (date, narrative , value, success = false) {
+
+        if (date.isValid() && narrative && value) {
+            this.success = true;
+        }
+
+        this.date = date.format("DD/MM");
         this.narrative = narrative;
         if (value > 0) {
             this.value = `+${value}`;
@@ -76,15 +84,18 @@ async function readCSVFile(fileName) {
     const options = {
         map(value, index) {
             switch(index) {
+                case 0:
+                    // column 1 is date as moment date obj
+                    return moment(value, 'DD/MM/YYYY');
+                    
                 case 4:
-                    // column 4 is the transaction narrative
+                    // column 5 is the transaction value as float
                     return parseFloat(value);
                 
                 default:
-                    // column 1 is date as string
                     // column 2 is the sender's name
                     // column 3 is recipient's name
-                    // column 5 is the transaction value as string
+                    // column 4 is the transaction narrative
                     return value;
             }
         },

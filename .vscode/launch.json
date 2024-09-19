@@ -6,8 +6,17 @@
         "request": "launch",
         "name": "Launch Program",
         "skipFiles": ["<node_internals>/**"],
-        "program": "${workspaceFolder}\\app.js"
+        "program": "${workspaceFolder}\\supportBank1.js",
+        "runtimeExecutable": "C:\\Program Files\\nodejs\\node.exe",
       }
-    ]
+    ],
+    "inputs": [
+    {
+      "id": "echoPrompt",
+      "description": "Please enter a value",
+      "default": "default echo text",
+      "type": "promptString"
+    }
+  ]
   }
   
