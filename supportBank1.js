@@ -44,11 +44,8 @@ class Account {
     
     // update account with new balance and transaction history
     updateAccount(date, narrative, value) {
-        let currTransaction = new Transaction(date, narrative, value);
-        if (currTransaction.success) {
-            this.transactionHistory.push(currTransaction);
-            this.balance += value;
-        }
+        this.transactionHistory.push(new Transaction(date, narrative, value));
+        this.balance += value;
     }
 
 }
@@ -128,28 +125,28 @@ async function main() {
     var accDatabase = new Map();
     worksheet.eachRow(row => {
 
-        // skip headings row
-        if (row.number == 1) {
-            return
-        }
-
         // destructuing assingment of variables
         let [, date, senderName, recipientName, narrative, value] = row.values;
 
-        // sender account check
-        if (!accDatabase.has(senderName)) {
-            accDatabase.set(senderName, new Account(senderName));
-        } 
-        
-        // update sender acc
-        accDatabase.get(senderName).updateAccount(date, narrative, -value);
+        // check data is good read
+        if (date.isValid() && narrative && value) {
+            // sender account check
+            if (!accDatabase.has(senderName)) {
+                accDatabase.set(senderName, new Account(senderName));
+            } 
+            
+            // update sender acc
+            accDatabase.get(senderName).updateAccount(date, narrative, -value);
 
-        // recipient account check
-        if (!accDatabase.has(recipientName)) {
-            accDatabase.set(recipientName, new Account(recipientName));
+            // recipient account check
+            if (!accDatabase.has(recipientName)) {
+                accDatabase.set(recipientName, new Account(recipientName));
+            }
+            
+            accDatabase.get(recipientName).updateAccount(date, narrative, value);
+        } else {
+            logger.error(`Row ${row.number} in the input file is not in the expected format.`)
         }
-        
-        accDatabase.get(recipientName).updateAccount(date, narrative, value);
     });
     
     // ask for user inputs
