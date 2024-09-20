@@ -4,7 +4,7 @@ var readlineSync = require('readline-sync');
 const Excel = require('exceljs');
 var log4js = require("log4js");
 const moment = require("moment");
-const fs = require('fs');
+const fs = require('fs').promises;
 
 log4js.configure(
     {
@@ -107,31 +107,12 @@ async function readCSVFile(fileName) {
 }
 
 async function readJSONFile(fileName) {
-    // fs.readFile(fileName, async (err, data) => {
-    //     if (err) {
-    //       logger.fatal('Error reading the file:', err);
-    //       return;
-    //     }
-    //     let temp = JSON.parse(data);
-    //     console.log(temp);
-    //     return await JSON.parse(data);
-    // })}
-    console.log("Anything1");
-    let jsonOutput;
-    console.log("Anything2");
-    fs.readFile('Transactions2013.json', `utf8`, function (err, data) {
-        console.log("Anything3");
-        if (err) {
-            throw err;
-        }
-        console.log("Anything4");
-        jsonOutput = JSON.parse(data);
-        console.log("Anything5");
-    
-        // Invoke the next step here however you like
-        console.log(jsonOutput);   // Put all of the code here (not the best solution)
-    });
-
+    try {
+        const data = await fs.readFile(fileName, 'utf8');
+        return JSON.parse(data);
+    } catch (err) {
+        throw err;
+    }
 }
 
 function isFormattedCorrectly(userRequest) {
@@ -141,7 +122,7 @@ function isFormattedCorrectly(userRequest) {
 
 function updateDatabase(accDatabase, date, senderName, recipientName, narrative, value, index) {
     // check data is good read
-    if (date.isValid() && narrative && value) {
+    if (date.isValid() && value) {
         // sender account check
         if (!accDatabase.has(senderName)) {
             accDatabase.set(senderName, new Account(senderName));
@@ -170,13 +151,19 @@ async function handleFileType(fileName) {
       case 'json':
         logger.info('This is a JSON file. Parsing JSON...');
         const worksheetJSON = await readJSONFile(fileName);
-        // console.log(jsonData);
-        // worksheetJSON.forEach(row => {
-        //     console.log("Hello");
-        // })
+        let index = 0;
+        worksheetJSON.forEach(row => {
+            let date = moment(row.Date);
+            let senderName = row.FromAccount;
+            let recipientName = row.ToAccount;
+            let narrative = row.Narrative;
+            let value = parseFloat(row.Amount);
+            index++;
+            updateDatabase(accDatabase, date, senderName, recipientName, narrative, value, index);
 
-        // return accDatabase
-        return ""
+        })
+
+        return accDatabase
 
       case 'csv':
         logger.info('This is a CSV file. Processing CSV...');
