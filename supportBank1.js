@@ -5,6 +5,7 @@ const Excel = require('exceljs');
 var log4js = require("log4js");
 const moment = require("moment");
 const fs = require('fs').promises;
+const {XMLParser, XMLBuilder, XMLValidator} = require("fast-xml-parser");
 
 log4js.configure(
     {
@@ -17,8 +18,6 @@ log4js.configure(
 });
 
 const logger = log4js.getLogger('supportBank1.js');
-
-
 
 // // define classes
 
@@ -115,6 +114,18 @@ async function readJSONFile(fileName) {
     }
 }
 
+async function readXMLFile(fileName) {
+    try {
+        const data = await fs.readFile(fileName, 'utf8');
+        const parser = new XMLParser();
+        const jObj = parser.parse(data);
+        return jObj.TransactionList.SupportTransaction;
+    
+    } catch (err) {
+        throw err;
+    }
+}
+
 function isFormattedCorrectly(userRequest) {
     const regexTest = /List\s+([\w\s]+)/;
     return regexTest.test(userRequest);
@@ -151,15 +162,13 @@ async function handleFileType(fileName) {
       case 'json':
         logger.info('This is a JSON file. Parsing JSON...');
         const worksheetJSON = await readJSONFile(fileName);
-        let index = 0;
-        worksheetJSON.forEach(row => {
+        worksheetJSON.forEach((row, rowIdx) => {
             let date = moment(row.Date);
             let senderName = row.FromAccount;
             let recipientName = row.ToAccount;
             let narrative = row.Narrative;
             let value = parseFloat(row.Amount);
-            index++;
-            updateDatabase(accDatabase, date, senderName, recipientName, narrative, value, index);
+            updateDatabase(accDatabase, date, senderName, recipientName, narrative, value, rowIdx);
 
         })
 
@@ -178,9 +187,23 @@ async function handleFileType(fileName) {
             updateDatabase(accDatabase, date, senderName, recipientName, narrative, value, row.number);
         });
         
-        return accDatabase
+        return accDatabase;
       
-      default:
+      case 'xml':
+        logger.info('This is an XML file. Processing XML...');
+        const worksheetXML = await readXMLFile(fileName);
+        worksheetXML.forEach((row, rowIdx) => {
+            let date = moment(); // accepted bug in input file
+            let senderName = row.Parties.From;
+            let recipientName = row.Parties.To;
+            let narrative = row.Description;
+            let value = parseFloat(row.Value);
+            updateDatabase(accDatabase, date, senderName, recipientName, narrative, value, rowIdx);
+        });
+        
+        return accDatabase;
+        
+        default:
         logger.error('Unsupported file type. Please provide a valid file.');
     }
 }
@@ -193,8 +216,9 @@ async function main() {
     logger.trace("supportBank intiating...")
     
     // read file
-    const fileName = `Transactions2013.json`;
+    const fileName = `Transactions2012.xml`;
     // const fileName = `Transactions2014.csv`;
+    // const fileName = `Transactions2013.json`;
     const accDatabase = await handleFileType(fileName);
 
     // ask for user inputs
